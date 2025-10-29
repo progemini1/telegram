@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Assalomu alaykum! Bu Mega Marafon botining 7-versiyasi ("PostgreSQL").
+Assalomu alaykum! Bu Mega Marafon botining 7.1-versiyasi ("Xavfsiz").
 
-Bu versiya Railway.app (Server) va Neon.tech (Ma'lumotlar bazasi)
-bilan ishlash uchun to'liq moslashtirilgan.
-
-Mantiq v6 bilan bir xil, ammo ma'lumotlar bazasi SQLite'dan PostgreSQL'ga o'tkazilgan.
+Bu versiya tokenni to'g'ridan-to'g'ri koddan emas,
+balki Railway'dagi "Variables" bo'limidan (os.environ) o'qiydi.
 """
 
 import telebot
@@ -16,22 +14,17 @@ import time
 import threading
 import os  # Serverdagi maxfiy linkni olish uchun
 
-# --- Asosiy Sozlamalar ---
-TOKEN = "7216166559:AAHJxqADiNAq5wO32OVrf4sJ0ukmQ53JUvA"
+# --- Asosiy Sozlamalar (Endi Xavfsiz) ---
+TOKEN = os.environ.get('BOT_TOKEN') # Tokenni Railway'dagi 'BOT_TOKEN' o'zgaruvchisidan oladi
+DATABASE_URL = os.environ.get('DATABASE_URL') # Bazani Railway'dagi 'DATABASE_URL' o'zgaruvchisidan oladi
 
-# --- Ma'lumotlar bazasi sozlamalari (NEON.TECH dan olinadi) ---
-# DATABASE_URL Railway'dagi "Variables" bo'limidan olinadi.
-# DATABASE_URL = os.environ.get('DATABASE_URL') # VAQTINCHA O'CHIRILDI
-DATABASE_URL = "postgresql://neondb_owner:npg_FRI2B7bvpucx@ep-falling-mouse-addnehzt-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" # SIZ TAQDIM ETGAN ULANISH MANZILI
-
-
-# Agar DATABASE_URL topilmasa, bot ishga tushmaydi.
+# Agar Token yoki Baza topilmasa, bot ishga tushmaydi.
+if not TOKEN:
+    print("XATOLIK: BOT_TOKEN topilmadi. Railway'dagi 'Variables' bo'limini tekshiring.")
+    exit()
 if not DATABASE_URL:
     print("XATOLIK: DATABASE_URL topilmadi. Railway'dagi 'Variables' bo'limini tekshiring.")
-    # Ishga tushmasdan oldin to'xtatish
-    # Bu qatorni vaqtincha kommentariyaga olsangiz, kodning qolgan qismini ko'ra olasiz,
-    # lekin serverda bu tekshiruv juda muhim.
-    # exit() 
+    exit() 
 
 
 # Kanallar ro'yxati va ularning tavsifi
@@ -61,7 +54,6 @@ def get_db_connection():
 
 def init_db():
     """Ma'lumotlar bazasini va 'users' jadvalini yaratadi."""
-    # SQL sintaksisi PostgreSQL uchun biroz o'zgartirildi (masalan, BOOLEAN)
     create_table_query = '''
     CREATE TABLE IF NOT EXISTS users (
         user_id BIGINT PRIMARY KEY,
@@ -81,7 +73,7 @@ def init_db():
         cursor.execute(create_table_query)
         conn.commit()
         cursor.close()
-        print("Ma'lumotlar bazasi jadvali (v7-PostgreSQL) tayyor.")
+        print("Ma'lumotlar bazasi jadvali (v7.1-PostgreSQL) tayyor.")
     except Exception as e:
         print(f"DB init xatosi: {e}")
     finally:
@@ -237,13 +229,8 @@ def get_user_rank(user_id):
             conn.close()
 
 # --- Yordamchi funksiyalar (Motivatsiya va UX - O'ZGARTIRILMAGAN) ---
-# (Bu yerdagi barcha mantiq avvalgi v6 bilan bir xil)
 
 def check_subscription(user_id):
-    """
-    Foydalanuvchining kanallarga a'zoligini tekshiradi.
-    QAYTARADI: Ro'yxat. A'zo BO'LMAGAN kanallar ro'yxatini qaytaradi.
-    """
     missing_channels = []
     for channel in CHANNELS:
         try:
@@ -259,10 +246,6 @@ def check_subscription(user_id):
     return missing_channels
 
 def generate_adaptive_keyboard(missing_list):
-    """
-    Faqat obuna bo'linmagan kanallar ro'yxati (Adaptiv UX)
-    va tekshirish tugmasini yaratadi.
-    """
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     
     for channel_username in missing_list:
@@ -278,14 +261,12 @@ def generate_adaptive_keyboard(missing_list):
     return keyboard
 
 def generate_main_menu():
-    """Asosiy menyu tugmalarini yaratadi (Obunadan so'ng)."""
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add("🚀 Do'stlarni taklif qilish", "📈 Mening statistikam")
     keyboard.add("🏆 Marafon Jadvali")
     return keyboard
 
 def send_main_menu(user_id):
-    """Foydalanuvchiga asosiy menyuni va referal xabarini yuboradi. (Kuchli Motivatsiya)"""
     try:
         stats = get_user_stats(user_id)
         if not stats:
@@ -299,7 +280,6 @@ def send_main_menu(user_id):
         bot_username = bot.get_me().username
         referral_link = f"https://t.me/{bot_username}?start={user_id}"
 
-        # Asosiy xabar - Marketing
         text = "🏁 <b>START CHIZIG'IDASIZ!</b>\n\n"
         text += "Tabriklaymiz, siz marafonning to'laqonli ishtirokchisisiz. Endi asosiy kurash boshlanadi!\n\n"
         text += "🎯 <b>Sizning birinchi vazifangiz:</b> <b>10 ta do'stingizni</b> (<b>50 ball</b>) taklif qilish orqali birinchi EKSKLYUZIV sovg'aga — maxfiy kanalga yo'llanma olish.\n\n"
@@ -318,7 +298,6 @@ def send_main_menu(user_id):
         except Exception:
             bot_name = "Mega Marafon"
 
-        # "Viral" bo'lishi uchun ulashish matni (sizning talabingiz bo'yicha)
         share_text = f"Do'stlar, keling! Men {bot_name}da qatnashyapman, bu haqiqatdan ham zo'r bo'lyapti! 🔥 Bu yerda nafaqat bilim va ko'nikmalar, balki qimmatbaho sovg'alar ham bor ekan! 🏆 Siz ham qo'shiling, marafondan qolib ketmang!"
         share_url = f"https://t.me/share/url?url={referral_link}&text={share_text}"
         
@@ -332,12 +311,10 @@ def send_main_menu(user_id):
         print(f"send_main_menu xatosi: {e}")
 
 def send_reward(user_id):
-    """Foydalanuvchiga bir martalik link va KUCHLI motivatsion xabar yuboradi."""
     try:
         expire_date = int(time.time()) + 3600  # 1 soat
         link = bot.create_chat_invite_link(PRIVATE_CHANNEL_ID, member_limit=1, expire_date=expire_date)
         
-        # 1-XABAR: Sovg'a
         reward_text = f"💎 <b>BIRINCHI MARRA SIZNIKI! TABRIKLAYMIZ!</b> 💎\n\n"
         reward_text += "Siz <b>10 ta do'stingizni</b> muvaffaqiyatli taklif qildingiz va <b>EKSKLYUZIV</b> kanalimizga yo'llanmani qo'lga kiritdingiz!\n\n"
         reward_text += "❗️ Bu sizning shaxsiy, <b>BIR MARTALIK</b> taklif linkingiz. U faqat 1 soat amal qiladi:\n\n"
@@ -348,7 +325,6 @@ def send_reward(user_id):
         
         set_reward_given(user_id)
         
-        # 2-XABAR: Motivatsiya (2 soniyadan keyin)
         time.sleep(2)
         motivation_text = "<b>To'xtamang! Bu faqat boshlanishi!</b> 🚀\n\n"
         motivation_text += "Siz Eksklyuziv kanalga yo'llanmani qo'lga kiritdingiz, ammo <b>ASOSIY SOVRINLAR</b> — 1-o'rin uchun kurash hali oldinda!\n\n"
@@ -365,7 +341,6 @@ def send_reward(user_id):
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    """Botga /start buyrug'i kelganda ishlaydi."""
     try:
         user_id = message.from_user.id
         first_name = message.from_user.first_name
@@ -377,21 +352,18 @@ def handle_start(message):
         if message.text and len(message.text.split()) > 1:
             try:
                 potential_id = int(message.text.split()[1])
-                if potential_id != user_id: # O'ziga o'zi referal bo'lolmaydi
+                if potential_id != user_id: 
                     referrer_id = potential_id
             except (ValueError, IndexError):
                 pass
         
-        # Bu funksiya referalni faqat bir marta, ISHONCHLI yozadi (v7 Mantiq)
         add_user(user_id, first_name, username, referrer_id)
         
-        # Kuchaytirilgan marketing matni
         welcome_text = f"🏆 <b>Xush kelibsiz, {first_name}!</b>\n\n"
         welcome_text += "Siz shunchaki botga emas, <b>YILNING ENG KATTA MEGA MARAFONIGA</b> muvaffaqiyatli qo'shildingiz!\n\n"
         welcome_text += "🔥 Bu imkoniyat faqat <b>yilda bir marta</b> beriladi! Sizni nafaqat TOP Universitetlar va Grantlar olamiga olib kiruvchi EKSKLYUZIV bilimlar, balki marafon g'oliblari uchun <b>MO'LJALLANGAN QIMMATBAHO SOVG'ALAR</b> kutmoqda!\n\n"
         welcome_text += "🏁 <b>MARAFON BOSHLANDI!</b> G'oliblar qatorida bo'lish uchun birinchi shart: 4 ta rasmiy kanalimizga obuna bo'ling va \"🏁 Obunani Tekshirish\" tugmasini bosing:"
         
-        # Boshlang'ich tugmalar (barcha 4 kanal)
         initial_keyboard = generate_adaptive_keyboard(CHANNELS)
         bot.send_message(user_id, welcome_text, reply_markup=initial_keyboard)
 
@@ -400,24 +372,19 @@ def handle_start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'check_subscription')
 def handle_check_subscription(call):
-    """'🏁 Obunani Tekshirish' tugmasi bosilganda ishlaydi. (Adaptiv Mantiq)"""
     user_id = call.from_user.id
     try:
-        # "Aqlli" tekshiruv: faqat obuna bo'linmagan kanallarni qaytaradi
         missing = check_subscription(user_id) 
         
         if len(missing) == 0:
-            # --- HAMMASIGA OBUNA BO'LINGAN (MUVAFFAQIYAT) ---
             bot.answer_callback_query(call.id, "✅ Ajoyib! Siz marafonga qo'shildingiz!")
             try:
-                # Tugmalarni o'chirish
                 bot.delete_message(call.message.chat.id, call.message.message_id)
             except Exception as e:
                 print(f"Xabarni o'chirish xatosi: {e}")
             
             set_subscribed_status(user_id, 1)
             
-            # --- REFERAL BALLARINI BIR MARTA BERISH MANTIG'I (v7) ---
             conn = None
             try:
                 conn = get_db_connection()
@@ -428,16 +395,12 @@ def handle_check_subscription(call):
                 referral_claimed = result[1] if result else False
                 
                 if referrer_id and not referral_claimed:
-                    # 1. Ball qo'shamiz
                     cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s", (POINTS_PER_REFERRAL, referrer_id))
-                    
-                    # 2. "Hisoblandi" deb belgilaymiz (qayta ball berilmaydi)
                     cursor.execute("UPDATE users SET referral_claimed = TRUE WHERE user_id = %s", (user_id,))
                     
                     conn.commit()
                     print(f"Ball berildi: {referrer_id} ga {user_id} uchun {POINTS_PER_REFERRAL} ball qo'shildi.")
                     
-                    # Referalga xabar berish
                     try:
                         cursor.execute("SELECT points, reward_given FROM users WHERE user_id = %s", (referrer_id,))
                         referrer_stats = cursor.fetchone()
@@ -448,9 +411,7 @@ def handle_check_subscription(call):
                             bot.send_message(referrer_id, f"🚀 <b>Yaxshi ish!</b> Siz <b>{call.from_user.first_name}</b>ni jamoangizga qo'shdingiz va <b>{POINTS_PER_REFERRAL} ball</b> oldingiz!\n\n"
                                                         f"Sizning jami ballingiz: <b>{new_points}</b>. Maqsad sari olg'a!")
                             
-                            # Agar shu ball bilan 50 ga yetgan bo'lsa va sovg'a olmagan bo'lsa
                             if new_points >= REQUIRED_POINTS_FOR_REWARD and not reward_given:
-                                # send_reward() o'z ulanishini o'zi ochadi
                                 send_reward(referrer_id)
                     except Exception as e:
                         print(f"Referalga xabar yuborish xatosi: {e}")
@@ -462,17 +423,12 @@ def handle_check_subscription(call):
                 if conn:
                     conn.close()
 
-            # Asosiy menyuni yuborish
             send_main_menu(user_id)
             
         else:
-            # --- HALI OBUNA BO'LINMAGAN KANALLAR BOR (ADAPTIV UX) ---
-            
-            # 1. Ogohlantirish berish
             alert_text = f"⚠️ Iltimos, quyidagi {len(missing)} ta kanalga obuna bo'ling:"
             bot.answer_callback_query(call.id, alert_text, show_alert=True)
             
-            # 2. Tugmalarni FAQA_T obuna bo'linmagan kanallar bilan yangilash
             new_keyboard = generate_adaptive_keyboard(missing)
             bot.edit_message_reply_markup(
                 chat_id=call.message.chat.id,
@@ -486,22 +442,17 @@ def handle_check_subscription(call):
         print(f"check_subscription callback xatosi: {e}")
 
 def check_subscription_and_proceed(message, function_to_run):
-    """
-    Bu funksiya avval obunani tekshiradi (kanaldan chiqib ketmaganligini).
-    """
     user_id = message.from_user.id
     try:
         missing = check_subscription(user_id) 
         
         if len(missing) == 0:
             set_subscribed_status(user_id, 1) 
-            function_to_run(message) # Asosiy funksiyani (statistika/liderlar) ishga tushirish
+            function_to_run(message) 
         else:
-            # Foydalanuvchi kanaldan chiqib ketgan
             set_subscribed_status(user_id, 0)
             bot.send_message(user_id, "❗️ <b>Marafondan chetlatildingiz!</b>\n\nBotdan foydalanish uchun barcha 4 ta kanalga obuna bo'lishingiz shart.", reply_markup=types.ReplyKeyboardRemove())
             
-            # Unga faqat obuna bo'linmagan kanallarni ko'rsatish
             missing_keyboard = generate_adaptive_keyboard(missing)
             bot.send_message(user_id, "Iltimos, kanallarga qayta obuna bo'ling va \"🏁 Obunani Tekshirish\" tugmasini bosing:", reply_markup=missing_keyboard)
     
@@ -512,16 +463,13 @@ def check_subscription_and_proceed(message, function_to_run):
 
 @bot.message_handler(commands=['status'])
 def handle_status_command(message):
-    """/status buyrug'ini ushlaydi va statistika funksiyasiga yo'naltiradi."""
     check_subscription_and_proceed(message, handle_show_stats)
 
 @bot.message_handler(func=lambda message: message.text == "📈 Mening statistikam")
 def handle_stats_button(message):
-    """'Mening statistikam' tugmasini ushlaydi."""
     check_subscription_and_proceed(message, handle_show_stats)
 
 def handle_show_stats(message):
-    """Foydalanuvchiga uning statistikasini ko'rsatadi. (Kuchli Motivatsiya)"""
     user_id = message.from_user.id
     first_name = message.from_user.first_name
     try:
@@ -559,11 +507,9 @@ def handle_show_stats(message):
 
 @bot.message_handler(func=lambda message: message.text == "🏆 Marafon Jadvali")
 def handle_leaderboard_button(message):
-    """'Marafon Jadvali' tugmasini ushlaydi."""
     check_subscription_and_proceed(message, handle_show_leaderboard)
 
 def handle_show_leaderboard(message):
-    """Foydalanuvchiga liderlar ro'yxatini ko'rsatadi."""
     user_id = message.from_user.id
     try:
         leaders = get_leaderboard()
@@ -598,11 +544,9 @@ def handle_show_leaderboard(message):
 
 @bot.message_handler(func=lambda message: message.text == "🚀 Do'stlarni taklif qilish")
 def handle_invite_button(message):
-    """'Do'stlarni taklif qilish' tugmasini ushlaydi va linkni qayta yuboradi."""
     check_subscription_and_proceed(message, send_referral_link_again)
 
 def send_referral_link_again(message):
-    """Foydalanuvchiga uning referal linkini va ulashish tugmasini qayta yuboradi."""
     user_id = message.from_user.id
     try:
         bot_username = bot.get_me().username
@@ -630,7 +574,6 @@ def send_referral_link_again(message):
 
 @bot.message_handler(func=lambda message: True)
 def handle_unknown_text(message):
-    """Har qanday tanilmagan matnga javob beradi. (Yaxshilangan UX)"""
     user_id = message.from_user.id
     try:
         stats = get_user_stats(user_id)
@@ -644,9 +587,9 @@ def handle_unknown_text(message):
 # --- Botni ishga tushirish (Xatolikka chidamli) ---
 def start_bot():
     """Botni doimiy (while True) rejimda ishga tushiradi."""
-    print("Ma'lumotlar bazasi (v7-PostgreSQL) tayyorlanmoqda...")
+    print("Ma'lumotlar bazasi (v7.1-PostgreSQL) tayyorlanmoqda...")
     init_db()
-    print("Bot ishga tushmoqda... (v7 - Yakuniy Optimizatsiya)")
+    print("Bot ishga tushmoqda... (v7.1 - Xavfsiz Versiya)")
     
     while True:
         try:
@@ -658,4 +601,3 @@ def start_bot():
 
 if __name__ == '__main__':
     start_bot()
-
