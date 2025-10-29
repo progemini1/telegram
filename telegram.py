@@ -21,7 +21,9 @@ TOKEN = "7216166559:AAHJxqADiNAq5wO32OVrf4sJ0ukmQ53JUvA"
 
 # --- Ma'lumotlar bazasi sozlamalari (NEON.TECH dan olinadi) ---
 # DATABASE_URL Railway'dagi "Variables" bo'limidan olinadi.
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# DATABASE_URL = os.environ.get('DATABASE_URL') # VAQTINCHA O'CHIRILDI
+DATABASE_URL = "postgresql://neondb_owner:npg_FRI2B7bvpucx@ep-falling-mouse-addnehzt-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require" # SIZ TAQDIM ETGAN ULANISH MANZILI
+
 
 # Agar DATABASE_URL topilmasa, bot ishga tushmaydi.
 if not DATABASE_URL:
@@ -656,3 +658,4 @@ def start_bot():
 
 if __name__ == '__main__':
     start_bot()
+
